@@ -1,92 +1,86 @@
 import React, { useState, useEffect } from 'react';
 import mqtt from 'mqtt';
-// import Gauge from './gauge';
-import { CircularProgress } from '@mui/material';
+import Gauge from './gauge';
 
-const MqttURL = 'ws://192.168.0.222:8080';
-const MqttTopic = 'test/demo'
+// interface MqttDisplayProps {
+//     // Add any props here if needed
+// }
+
+const MqttURL = 'ws://192.168.0.223:8080';
+// const MqttURL = 'wss://mqtt-dashboard.com:8884/mqtt';
+
 
 const MqttDisplay: React.FC = () => {
     const [currentValue, setCurrentValue] = useState<number | null>(null);
-    const [isConnected, setIsConnected] = useState(false)
+    const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // making an instance of an MQTT client
-
+        // Create a client instance
         const client = mqtt.connect(MqttURL, {
             rejectUnauthorized: false,
-        })
+        });
 
+        // Connection event
         client.on('connect', () => {
-            console.log("MQTT connected!")
-            setIsConnected(true)
+            console.log('Connected to MQTT Broker');
+            setIsConnected(true);
 
-            client.subscribe(MqttTopic, (err) => {
-                if (err){
-                    console.log('Failed to subscibe: ', err)
+            // Subscribe to the topic after connecting
+            client.subscribe('test/demo', (err) => {
+                if (err) {
+                    console.error('Failed to subscribe:', err);
                 } else {
-                    console.log('subscribed to: ', MqttTopic)
+                    console.log('Subscribed to test/demo');
                 }
-            })
-        })
+            });
+        });
 
-        // Process the MQTT message
-
+        // Message event
         client.on('message', (topic, message) => {
-            console.log(`Recieved message on topic ${topic}:`, message.toString())
-
-            const msg = message.toString()
-            const numericValue = parseFloat(msg.trim())
-
+            // Use the topic if needed, e.g., verify it matches 'test/demo'
+            console.log(`Received message on topic ${topic}:`, message.toString());
+        
+            const msg = message.toString();
+            const numericValue = parseFloat(msg.trim());
+        
             if (!isNaN(numericValue)) {
-                setCurrentValue(numericValue)
-
+                setCurrentValue(numericValue);
             } else {
-                console.error(`Received non-numeric value:`, msg)
+                console.error('Received non-numeric value:', msg);
             }
-        })
+        });
 
         // Error event
         client.on('error', (err) => {
-            console.error('MQTT Error: ', err)
-            client.end();
-        })
+            console.error('MQTT Error:', err);
+            setIsConnected(false);
+        });
 
         return () => {
-            client.unsubscribe(MqttTopic)
-            client.end()
-        }
+            // Cleanup: unsubscribe and disconnect when component unmounts
+            client.unsubscribe('test/demo');
+            client.end();
+        };
+    }, []);  // Empty dependency array to run only once
 
-    }, [])
     return (
-    <div className='gauge-display'>
-        {isConnected ? (
+        <div className="guage-display">
+          {isConnected ? (
             currentValue !== null ? (
-                <>
-                    {/* Circular Gauge */}
-                    <CircularProgress
-                        variant="determinate"
-                        value={(currentValue / maxValue) * 100}
-                        size={80}
-                        thickness={4}
-                        style={{ color: '#2196F3' }}
-                    />
-
-                    {/* Optional: Linear Progress Bar */}
-                    <LinearProgress
-                        variant="determinate"
-                        value={(currentValue / maxValue) * 100}
-                        className='linear-gauge'
-                    />
-                </>
+              <>
+                <Gauge value={currentValue}  />
+                <div className="value-display">
+                  Current Value: {currentValue.toFixed(2)}
+                </div>
+              </>
             ) : (
-                <div className='loading'>Waiting for data...</div>
+              <div className="loading">Waiting for data...</div>
             )
-        ) : (
-            <div className='error'>Not Connected to MQTT Broker</div>
-        )}
-    </div>
-    )
-}
+          ) : (
+            <div className="error">Not Connected to MQTT Broker</div>
+          )}
+        </div>
+      );
+};
 
-export default MqttDisplay
+export default MqttDisplay;
