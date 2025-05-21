@@ -6,13 +6,18 @@ import Gauge from './gauge';
 //     // Add any props here if needed
 // }
 
-const MqttURL = 'ws://192.168.0.223:8080';
+const MqttURL = 'ws://localhost:8080';
 // const MqttURL = 'wss://mqtt-dashboard.com:8884/mqtt';
 
 
 const MqttDisplay: React.FC = () => {
     const [currentValue, setCurrentValue] = useState<number | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+
+    let clientMap = new Map<number, number>();
+
+    
+
 
     useEffect(() => {
         // Create a client instance
@@ -62,6 +67,14 @@ const MqttDisplay: React.FC = () => {
             client.end();
         };
     }, []);  // Empty dependency array to run only once
+
+
+
+    //read in data from mqtt broker, take the ID of the data and check it in the ID map,
+    // if in the ID map, populate the  map with the data of that ID
+    // if the ID is not in the map, create a new space in the map and add the data
+    //create X guages with respect to the size of the map
+    // provide ID of each item in the map above each guage
 
     return (
         <div className="guage-display">
