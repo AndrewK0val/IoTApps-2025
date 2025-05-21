@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sine Wave Receiver</title>
+</head>
+<body>
+  <h2>Streaming 440Hz Sine Wave...</h2>
+  <audio id="audio" autoplay controls></audio>
+
+  <script>
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    });
+
+    const ws = new WebSocket("ws://54.216.122.197:8080"); // match sender
+
+    ws.onopen = () => console.log("[+] WebSocket connected");
+
+    ws.onmessage = async (event) => {
+      const text = await event.data.text();
+      const data = JSON.parse(text);
+      console.log("[<] WS:", data);
+
+      if (data.type === "offer") {
+        await pc.setRemoteDescription(new RTCSessionDescription(data));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        ws.send(JSON.stringify({
+          type: pc.localDescription.type,
+          sdp: pc.localDescription.sdp
+        }));
+      } else if (data.type === "candidate" && data.candidate) {
+        await pc.addIceCandidate(data.candidate);
+      }
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        ws.send(JSON.stringify({ candidate: event.candidate }));
+      }
+    };
+
+    pc.ontrack = (event) => {
+      console.log("[🎵] Received audio track");
+      const audio = document.getElementById("audio");
+      if (audio.srcObject !== event.streams[0]) {
+        audio.srcObject = event.streams[0];
+        console.log("[🎧] Audio stream set");
+      }
+    };
+  </script>
+</body>
+</html>

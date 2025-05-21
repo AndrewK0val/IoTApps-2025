@@ -75,8 +75,9 @@ function App() {
 
   return (
     <>
+    <h1>IoT Apps 2025 Project Demo</h1>
     
-      <MqttDisplay />
+      {/* <MqttDisplay /> */}
       <audio id="audio" autoPlay controls></audio>
 
 
